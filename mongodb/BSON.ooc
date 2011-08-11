@@ -59,13 +59,14 @@ writeDocument: func (w: Writer, doc: HashBag) {
         T := doc getClass(key)
         match T {
             case Double => _write(key, doc get(key, Double) as Double toString())
-            case String => _write(key, doc get(key, String) as String)
+            case String => _write(key, "\"%s\"" format(EscapeSequence escape(doc get(key, String) as String)))
             case HashBag => {
                 _write(key, "") // evil!
                 writeDocument(w, doc get(key, HashBag) as HashBag)
             }
             case Bag => {
-                // TODO!
+                _write(key, "") // evil!
+                writeArray(w, doc get(key, Bag) as Bag)
             }
             case Binary => {
                 b := doc get(key, Binary) as Binary
@@ -82,10 +83,53 @@ writeDocument: func (w: Writer, doc: HashBag) {
             case Int32 => _write(key, doc get(key, Int32) as Int32 toString())
             case Int64 => _write(key, doc get(key, Int64) as Int64 toString())
             case Min => _write(key, "<min>")
-            case Max => _write(key, "<max")
+            case Max => _write(key, "<max>")
         }
     }
     w write('}')
+}
+
+writeArray: func (w: Writer, doc: Bag) {
+    first := true
+    _write := func(val: String) {
+        if(!first)
+            w write(", ")
+        w write(val)
+        first = false
+    }
+    w write('[')
+    for(i in 0..doc size) {
+        T := doc getClass(i)
+        match T {
+            case Double => _write(doc get(i, Double) as Double toString())
+            case String => _write("\"%s\"" format(EscapeSequence escape(doc get(i, String) as String)))
+            case HashBag => {
+                _write("") // evil!
+                writeDocument(w, doc get(i, HashBag) as HashBag)
+            }
+            case Bag => {
+                _write("") // evil!
+                writeArray(w, doc get(i, Bag) as Bag)
+            }
+            case Binary => {
+                b := doc get(i, Binary) as Binary
+                _write(formatOctets(b bytes, b size))
+            }
+            case ObjectId => _write(formatOctets(doc get(i, ObjectId) as ObjectId value, 12))
+            case Bool => _write(doc get(i, Bool) as Bool ? "true" : "false")
+            case UTCDateTime => _write(doc get(i, UInt64) as UInt64 toString())
+            case Pointer => _write("null")
+            case Regex => {
+                r := doc get(i, Regex) as Regex
+                _write("s/%s/%s" format(r pattern, r options))
+            }
+            case Int32 => _write(doc get(i, Int32) as Int32 toString())
+            case Int64 => _write(doc get(i, Int64) as Int64 toString())
+            case Min => _write("<min>")
+            case Max => _write("<max>")
+        }
+    }
+    w write(']')
 }
 
 Parser: class {

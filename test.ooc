@@ -1,5 +1,5 @@
 import io/[Reader, StringReader, BinarySequence, BufferWriter, Writer]
-import structs/HashBag
+import structs/[Bag,HashBag]
 import mongodb/BSON
 
 /*s :="\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00" 
@@ -16,14 +16,15 @@ b put("yo", true)
 r := Regex new("hey[a-z]+", "f")
 b put("regx", r)
 
-b2 := HashBag new()
-b2 put("yo", "hai")
-b2 add("ya", false)
+b2 := Bag new()
+b2 add("hai")
+b2 add(false)
+b2 add(b)
 
-b put("arr", b2)
+//b put("arr", b2)
 
 s := Buffer new(100)
 w := BufferWriter new(s)
-writeDocument(w, b)
+writeArray(w, b2)
 
 String new(s) println()
