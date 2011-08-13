@@ -244,7 +244,7 @@ Parser: class {
 
     readString: func {
         name := readName()
-        value := seq pascalString(4) // TODO: this will interpret the first byte as unsigned, while bson says it's signed. problems?
+        value := seq pascalString(4) trimRight('\0') // TODO: this will interpret the first byte as unsigned, while bson says it's signed. problems?
         // TODO: the value can contain null bytes -- wait for the new String!
         put(name, value)
     }
@@ -395,7 +395,8 @@ Builder: class {
             case String => {
                 seq u8(0x02) \
                       .cString(name) \
-                      .pascalString(obj as String, 4)
+                      .pascalString(obj as String, 4) \
+                      .u8(0x00) // TODO: has to be included in pascalString
             }
             case HashBag => { // embedded document
                 // create a new temporary buffer / seq pair
