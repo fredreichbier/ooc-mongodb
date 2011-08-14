@@ -1,4 +1,6 @@
-import io/BinarySequence
+import io/[BinarySequence, Writer, BufferWriter]
+import structs/[HashBag, ArrayList]
+import BSON into BSON
 
 OpCode: enum {
     reply = 1
@@ -12,9 +14,20 @@ OpCode: enum {
     killCursors = 2007
 }
 
+writeBSON: func (value: HashBag, seq: BinarySequenceWriter) {
+    bson := BSON Builder new(seq)
+    bson writeDocument(value)
+}
+
 WireObject: abstract class {
     toWire: func (writer: BinarySequenceWriter)
     fromWire: func (reader: BinarySequenceReader)
+    getSize: func -> Int32 { -1 }
+}
+
+generateRequestId: func -> Int32 {
+    id: static Int32 = 1337
+    return id % 4294967295
 }
 
 MessageHeader: class extends WireObject {
@@ -23,10 +36,10 @@ MessageHeader: class extends WireObject {
     init: func {}
 
     toWire: func (writer: BinarySequenceWriter) {
-        writer s32(messageLength)
-              .s32(requestID)
-              .s32(responseTo)
-              .s32(opCode)  
+        writer s32(messageLength) \
+              .s32(requestID) \
+              .s32(responseTo) \
+              .s32(opCode)
     }
 
     fromWire: func (reader: BinarySequenceReader) {
@@ -35,25 +48,51 @@ MessageHeader: class extends WireObject {
         responseTo = reader s32()
         opCode = reader s32()
     }
+
+    getSize: func -> Int32 {
+        4 * (Int32 size)
+    }
 }
 
 InsertFlags: enum {
     continueOnError = 1
 }
 
+createBinarySequence: func -> (Buffer, BinarySequenceWriter) {
+    buf := Buffer new()
+    writer := BufferWriter new(buf)
+    sequence := BinarySequenceWriter new(writer)
+    (buf, sequence)
+}
+
 // write-only
 Insert: class extends WireObject {
-    header: MessageHeader
-    flags: Int32
-    fullCollectionName: String
+    header := MessageHeader new()
+    flags: Int32 = 0
+    fullCollectionName: String = ""
+    documents := ArrayList<HashBag> new()
 
-    init: func (=header) {}
+    init: func () {}
+
+    addDocument: func (doc: HashBag) {
+        documents add(doc)
+    }
 
     toWire: func (writer: BinarySequenceWriter) {
-        header toWire(writer)
-        writer s32(flags)
+        // first write the body ...
+        (buf, seq) := createBinarySequence()
+        seq s32(flags) \
               .cString(fullCollectionName)
-                // TODO... 
+        for(doc in documents)
+            writeBSON(doc, seq)
+        // then calculate the size (including header)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode insert as Int32
+        header toWire(writer)
+        printOctets(buf data as Pointer, buf size)
+        writer writer write(buf)
     }
 }
 

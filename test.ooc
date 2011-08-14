@@ -1,17 +1,26 @@
 import io/[Reader, StringReader, BinarySequence, BufferWriter, Writer, FileReader]
 import structs/[ArrayList, Bag, HashBag]
-import mongodb/BSON
-
+import mongodb/[BSON, Message]
+import net/[Address, StreamSocket]
 
 main: func (args: ArrayList<String>) {
-    reader := FileReader new(args[1])
-    seq := BinarySequenceReader new(reader)
+    ip := IP4Address new("localhost")
+    addr := SocketAddress new(ip, 27017)
 
-    bson := Parser new(seq)
-    bson readAll()
-    
-    buffer := Buffer new(100)
-    writer := BufferWriter new(buffer)
-    writeDocument(writer, bson document)
-    String new(buffer) println()
+    sock := StreamSocket new(addr)
+    writer := sock writer()
+    seq := BinarySequenceWriter new(writer)
+    sock connect()
+
+    msg := Insert new()
+    msg fullCollectionName = "ooc.test"
+    doc := HashBag new()
+    doc put("hey", "there from ooc!")
+
+    msg addDocument(doc)
+    msg toWire(seq)
+
+    b := Buffer new()
+//    sock receive(b, 100)
+    sock close()
 }

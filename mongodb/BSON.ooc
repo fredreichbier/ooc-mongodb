@@ -365,7 +365,7 @@ Builder: class {
 
     init: func (=globalSeq) {
         buffer = Buffer new(100)
-        bufWriter = BufferWriter new()
+        bufWriter = BufferWriter new(buffer)
         bufSeq = BinarySequenceWriter new(bufWriter)
     }
 
@@ -377,15 +377,16 @@ Builder: class {
         clearBuffer()
         // write to buffer!
         for(key in doc getKeys()) {
-            _write(bufSeq, key, doc getClass(key), doc get(key, doc getClass(key)))
+            U := doc getClass(key)
+            _write(bufSeq, key, doc get(key, U))
         }
         // write length
-        globalSeq s32(buffer size)
+        globalSeq s32(buffer size + 4 + 1) // + s32 + u8!
         globalSeq writer write(buffer)
         globalSeq u8(0)
     }
 
-    _write: func <T> (seq: BinarySequenceWriter, name: String, T: Class, obj: T) {
+    _write: func <T> (seq: BinarySequenceWriter, name: String, obj: T) {
         match T {
             case Double => {
                 seq u8(0x01) \
@@ -395,8 +396,10 @@ Builder: class {
             case String => {
                 seq u8(0x02) \
                       .cString(name) \
-                      .pascalString(obj as String, 4) \
-                      .u8(0x00) // TODO: has to be included in pascalString
+                      .s32(obj as String length() + 1) \
+                      .bytes(obj as String) \
+                      .u8(0x00)
+                 // including the length byte, i guess
             }
             case HashBag => { // embedded document
                 // create a new temporary buffer / seq pair
@@ -405,7 +408,8 @@ Builder: class {
                 // then, writeeeee!
                 hb := obj as HashBag
                 for(key in hb getKeys()) {
-                    _write(subbufSeq, key, hb getClass(key), hb get(key, hb getClass(key)))
+                    U := hb getClass(key)
+                    _write(subbufSeq, key, hb get(key, U))
                 }
                 // then, write all that stuff to the big buffer.
                 seq u8(0x03) \
@@ -421,7 +425,8 @@ Builder: class {
                 // then, writeeeee!
                 bag := Bag new()
                 for(i in 0..bag size) {
-                    _write(subbufSeq, i toString(), bag getClass(i), bag get(i, bag getClass(i)))
+                    U := bag getClass(i)
+                    _write(subbufSeq, i toString(), bag get(i, U))
                 }
                 // then, write all that stuff to the big buffer.
                 seq u8(0x04) \
