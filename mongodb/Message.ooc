@@ -19,6 +19,12 @@ writeBSON: func (value: HashBag, seq: BinarySequenceWriter) {
     bson writeDocument(value)
 }
 
+readBSON: func (reader: BinarySequenceReader) -> (HashBag, SizeT) {
+    bson := BSON Parser new(reader)
+    bson readAll()
+    (bson document, bson size)
+}
+
 WireObject: abstract class {
     toWire: func (writer: BinarySequenceWriter)
     fromWire: func (reader: BinarySequenceReader)
@@ -124,4 +130,64 @@ Update: class extends WireObject {
 UpdateFlags: enum {
     upsert = 1
     multiInsert = 2
+}
+
+Query: class extends WireObject {
+    header := MessageHeader new()
+    flags: Int32 = 0
+    fullCollectionName: String = ""
+    numberToSkip: Int32 = 0
+    numberToReturn: Int32 = 0
+    query: HashBag
+    returnFieldSelector: HashBag = null
+
+    toWire: func (writer: BinarySequenceWriter) {
+        (buf, seq) := createBinarySequence()
+        seq s32(flags) \
+           .cString(fullCollectionName) \
+           .s32(numberToSkip) \
+           .s32(numberToReturn)
+        writeBSON(query, seq)
+        if(returnFieldSelector != null)
+            writeBSON(returnFieldSelector, seq)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode query as Int32
+        header toWire(writer)
+        writer writer write(buf)
+    }
+}
+
+QueryFlags: enum {
+    tailableCursor = 2
+    slaveOk = 4
+    oplogReplay = 8
+    noCursorTimeout = 16
+    awaitData = 32
+    exhaust = 64
+    partial = 128
+}
+
+Reply: class extends WireObject {
+    header := MessageHeader new()
+    responseFlags: Int32
+    cursorID: Int64
+    startingFrom, numberReturned: Int32
+    documents := ArrayList<HashBag> new()
+
+    fromWire: func (reader: BinarySequenceReader) {
+        header fromWire(reader)
+        responseFlags = reader s32() // 4
+        cursorID = reader s64() // 8 
+        startingFrom = reader s32() // 4
+        numberReturned = reader s32() // 4
+        reader bytesRead = 0 // TODO: wow that's kind of ugly! but needed for the remainingBytes calculation.
+        remainingBytes := header messageLength - header getSize() - (4 + 8 + 4 + 4)
+        while(remainingBytes > 0) {
+            (doc, size) := readBSON(reader)
+            documents add(doc)
+            remainingBytes -= size
+        }
+    }
 }

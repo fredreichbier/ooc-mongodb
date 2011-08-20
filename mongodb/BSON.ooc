@@ -144,6 +144,12 @@ Parser: class {
         }
     }
 
+    size: SizeT {
+        get {
+            sizes peek()
+        }
+    }
+
     init: func (=seq) {
         documents = Stack<Pointer> new()
         sizes = Stack<SizeT> new()

@@ -1,6 +1,7 @@
 import io/[Reader, StringReader, BinarySequence, BufferWriter, Writer, FileReader]
 import structs/[ArrayList, Bag, HashBag]
 import mongodb/[BSON, Message]
+import io/FileWriter
 import net/[Address, StreamSocket]
 
 main: func (args: ArrayList<String>) {
@@ -19,20 +20,22 @@ main: func (args: ArrayList<String>) {
 
 //    msg addDocument(doc)
 
-    msg := Update new()
+    msg := Query new()
     msg fullCollectionName = "ooc.test"
-    selector := HashBag new()
-    selector put("hey", "there from ooc!")
-
-    update := HashBag new()
-    update put("cow", "SAYS MOO ALL THE FSCKING TIME")
-    
-    msg selector = selector
-    msg update = update
+    msg query = HashBag new() 
 
     msg toWire(seq)
 
     b := Buffer new()
-//    sock receive(b, 100)
+    reader := sock reader()
+    seq2 := BinarySequenceReader new(reader)
+    msg2 := Reply new()
+    msg2 fromWire(seq2)
+
+    w := FileWriter new(stdout)
+    for(doc in msg2 documents) {
+        writeDocument(w, doc)
+    }
+
     sock close()
 }
