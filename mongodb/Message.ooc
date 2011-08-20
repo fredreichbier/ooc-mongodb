@@ -91,8 +91,37 @@ Insert: class extends WireObject {
         header responseTo = 0
         header opCode = OpCode insert as Int32
         header toWire(writer)
-        printOctets(buf data as Pointer, buf size)
         writer writer write(buf)
     }
 }
 
+// write-only
+Update: class extends WireObject {
+    header := MessageHeader new()
+    fullCollectionName: String = ""
+    flags: Int32 = 0
+    selector, update: HashBag
+
+    init: func {}
+    
+    toWire: func (writer: BinarySequenceWriter) {
+        // write the body first
+        (buf, seq) := createBinarySequence()
+        seq s32(0) \
+           .cString(fullCollectionName) \
+           .s32(flags)
+        writeBSON(selector, seq)
+        writeBSON(update, seq)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode update as Int32
+        header toWire(writer)
+        writer writer write(buf)
+    }
+}
+
+UpdateFlags: enum {
+    upsert = 1
+    multiInsert = 2
+}
