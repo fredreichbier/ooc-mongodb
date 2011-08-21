@@ -1,6 +1,7 @@
-import structs/HashBag
+import structs/[HashBag, HashMap]
 import Database, Server
 import Message into Message
+import Cursor
 
 Collection: class {
     db: Database
@@ -18,5 +19,20 @@ Collection: class {
             msg addDocument(doc as HashBag)
         )
         db server _sendMessage(msg)
+    }
+
+    find: func ~simple (selector: HashBag, callback: Func (Cursor)) {
+        msg := Message Query new()
+        msg fullCollectionName = fullCollectionName
+        msg query = selector
+        db server _sendMessage(msg)
+        db server registerCallback(msg header requestID, |msg|
+            cursor := Cursor new(this, msg)
+            callback(cursor)
+        )
+    }
+
+    find: func ~all (callback: Func (Cursor)) {
+        find(HashBag new(), callback)
     }
 }
