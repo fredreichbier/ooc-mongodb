@@ -32,8 +32,9 @@ WireObject: abstract class {
 }
 
 generateRequestId: func -> Int32 {
-    id: static Int32 = 1337
-    return id % 4294967295
+    id: static Int32 = 1336
+    id += 1
+    return id
 }
 
 MessageHeader: class extends WireObject {
@@ -141,8 +142,11 @@ Query: class extends WireObject {
     query: HashBag
     returnFieldSelector: HashBag = null
 
+    init: func () {}
+
     toWire: func (writer: BinarySequenceWriter) {
         (buf, seq) := createBinarySequence()
+        numberToReturn = 30
         seq s32(flags) \
            .cString(fullCollectionName) \
            .s32(numberToSkip) \
@@ -176,6 +180,8 @@ Reply: class extends WireObject {
     startingFrom, numberReturned: Int32
     documents := ArrayList<HashBag> new()
 
+    init: func () {}
+
     fromWire: func (reader: BinarySequenceReader) {
         header fromWire(reader)
         responseFlags = reader s32() // 4
@@ -189,5 +195,28 @@ Reply: class extends WireObject {
             documents add(doc)
             remainingBytes -= size
         }
+    }
+}
+
+GetMore: class extends WireObject {
+    header := MessageHeader new()
+    fullCollectionName: String
+    numberToReturn: Int32
+    cursorID: Int64
+
+    init: func {}
+
+    toWire: func (writer: BinarySequenceWriter) {
+        (buf, seq) := createBinarySequence()
+        seq s32(0) \
+           .cString(fullCollectionName) \
+           .s32(numberToReturn) \
+           .s64(cursorID)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode getMore as Int32
+        header toWire(writer)
+        writer writer write(buf)
     }
 }

@@ -1,13 +1,18 @@
 import structs/HashMap
-import Message, BSON, Server, Collection
+import Server
+import Message, BSON, Collection
 
 Database: class {
-    server: Server
+    _server: Pointer //Server
     name: String
 
     collections := HashMap<String, Collection> new()
 
-    init: func (=server, =name) {}
+    init: func (=_server, =name) {}
+
+    server: Server { /* ugly workaround, but if we just access `_server`, gcc dies because `Server` is an incomplete type */
+        get { _server as Server }
+    }
     
     getCollection: func (collectionName: String) -> Collection {
         // TODO: cache

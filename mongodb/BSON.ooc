@@ -164,16 +164,14 @@ Parser: class {
     pushDocument: func -> HashBag {
         doc := HashBag new()
         documents push(doc)
-        read := seq bytesRead
-        sizes push(seq s32() + read)
+        sizes push(seq s32())
         doc
     }
 
     pushArray: func -> Bag {
         arr := Bag new()
         documents push(arr)
-        read := seq bytesRead
-        sizes push(seq s32() + read)
+        sizes push(seq s32())
         arr
     }
 
@@ -197,9 +195,9 @@ Parser: class {
     }
 
     readElement: func {
-        if(seq bytesRead == sizes peek() - 1) {
+        /*if(seq bytesRead == sizes peek() - 1) {
             // a document was finished!
-        }
+        }*/
         id := seq u8()
         match (id) {
             case 0x00 => {

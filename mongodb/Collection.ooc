@@ -21,18 +21,18 @@ Collection: class {
         db server _sendMessage(msg)
     }
 
-    find: func ~simple (selector: HashBag, callback: Func (Cursor)) {
+    find: func ~simple (selector: HashBag, callback: Func (Exception, Cursor)) {
         msg := Message Query new()
         msg fullCollectionName = fullCollectionName
         msg query = selector
         db server _sendMessage(msg)
         db server registerCallback(msg header requestID, |msg|
             cursor := Cursor new(this, msg)
-            callback(cursor)
+            callback(null, cursor)
         )
     }
 
-    find: func ~all (callback: Func (Cursor)) {
+    find: func ~all (callback: Func (Exception, Cursor)) {
         find(HashBag new(), callback)
     }
 }
