@@ -35,4 +35,11 @@ Collection: class {
     find: func ~all (callback: Func (Exception, Cursor)) {
         find(HashBag new(), callback)
     }
+
+    delete: func (selector: HashBag) {
+        msg := Message Delete new()
+        msg fullCollectionName = fullCollectionName
+        msg selector = selector
+        db server _sendMessage(msg)
+    }
 }

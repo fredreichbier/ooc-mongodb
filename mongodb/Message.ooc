@@ -220,3 +220,56 @@ GetMore: class extends WireObject {
         writer writer write(buf)
     }
 }
+
+
+KillCursors: class extends WireObject {
+    header := MessageHeader new()
+    cursorIDs := ArrayList<Int64> new()
+
+    init: func {}
+
+    addCursorID: func (cursorID: Int64) {
+        cursorIDs add(cursorID)
+    }
+
+    toWire: func (writer: BinarySequenceWriter) {
+        (buf, seq) := createBinarySequence()
+        seq s32(0) \
+           .s32(cursorIDs size)
+        for(cursorID in cursorIDs)
+            seq s32(cursorID)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode killCursors as Int32
+        header toWire(writer)
+        writer writer write(buf)
+    }
+}
+
+Delete: class extends WireObject {
+    header := MessageHeader new()
+    fullCollectionName: String
+    flags: Int32
+    selector: HashBag
+
+    init: func {}
+
+    toWire: func (writer: BinarySequenceWriter) {
+        (buf, seq) := createBinarySequence()
+        seq s32(0) \
+           .cString(fullCollectionName) \
+           .s32(flags)
+        writeBSON(selector, seq)
+        header messageLength = buf size + header getSize()
+        header requestID = generateRequestId()
+        header responseTo = 0
+        header opCode = OpCode delete as Int32
+        header toWire(writer)
+        writer writer write(buf)
+    }
+}
+
+DeleteFlags: enum {
+    singleRemove = 1
+}

@@ -61,4 +61,13 @@ Cursor: class {
                 each(fn) // TODO: we should do some hacky-hacky not to overflow the stacky-stacky
             )
     }
+
+    kill: func {
+        if(canFetchMore) { // only makes sense if there is a cursor ID
+            msg := KillCursors new()
+            msg addCursorID(reply cursorID)
+            collection db server _sendMessage(msg)
+            reply cursorID = 0 // prevent killing it twice
+        }
+    }
 }

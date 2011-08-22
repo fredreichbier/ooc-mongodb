@@ -59,6 +59,7 @@ writeDocument: func (w: Writer, doc: HashBag) {
         T := doc getClass(key)
         match T {
             case Double => _write(key, doc get(key, Double) as Double toString())
+            case Float => _write(key, doc get(key, Float) as Double toString())
             case String => _write(key, "\"%s\"" format(EscapeSequence escape(doc get(key, String) as String)))
             case HashBag => {
                 _write(key, "") // evil!
@@ -84,6 +85,9 @@ writeDocument: func (w: Writer, doc: HashBag) {
             case Int64 => _write(key, doc get(key, Int64) as Int64 toString())
             case Min => _write(key, "<min>")
             case Max => _write(key, "<max>")
+            case => {
+                Exception new("Unknown type: %s. Poke fred, he's probably stupid." format(T name)) throw()
+            }
         }
     }
     w write('}')
@@ -102,6 +106,7 @@ writeArray: func (w: Writer, doc: Bag) {
         T := doc getClass(i)
         match T {
             case Double => _write(doc get(i, Double) as Double toString())
+            case Float => _write(doc get(i, Float) as Double toString())
             case String => _write("\"%s\"" format(EscapeSequence escape(doc get(i, String) as String)))
             case HashBag => {
                 _write("") // evil!
@@ -127,6 +132,9 @@ writeArray: func (w: Writer, doc: Bag) {
             case Int64 => _write(doc get(i, Int64) as Int64 toString())
             case Min => _write("<min>")
             case Max => _write("<max>")
+            case => {
+                Exception new("Unknown type: %s. Poke fred, he's probably stupid." format(T name)) throw()
+            }
         }
     }
     w write(']')
@@ -397,6 +405,11 @@ Builder: class {
                       .cString(name) \
                       .float64(obj as Double)
             }
+            case Float => {
+                seq u8(0x01) \
+                      .cString(name) \
+                      .float64(obj as Float)
+            }
             case String => {
                 seq u8(0x02) \
                       .cString(name) \
@@ -516,6 +529,9 @@ Builder: class {
             case Max => {
                 seq u8(0x7f) \
                    .cString(name)
+            }
+            case => {
+                Exception new("Unknown type: %s. Poke fred, he's probably stupid." format(T name)) throw()
             }
         }
     }
