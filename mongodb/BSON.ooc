@@ -431,7 +431,9 @@ Builder: class {
                 // then, write all that stuff to the big buffer.
                 seq u8(0x03) \
                    .cString(name) \
-                   .s32(subbuf size)
+                   .s32(subbuf size + 5)
+                // We add 5, because the length comprises 4 bytes and the trailing
+                // null byte is one byte.
                 seq writer write(subbuf)
                 seq u8(0)
             }
@@ -440,7 +442,7 @@ Builder: class {
                 subbuf := Buffer new(100)
                 subbufSeq := BinarySequenceWriter new(BufferWriter new(subbuf))
                 // then, writeeeee!
-                bag := Bag new()
+                bag := obj as Bag
                 for(i in 0..bag size) {
                     U := bag getClass(i)
                     _write(subbufSeq, i toString(), bag get(i, U))
@@ -448,7 +450,9 @@ Builder: class {
                 // then, write all that stuff to the big buffer.
                 seq u8(0x04) \
                    .cString(name) \
-                   .s32(subbuf size)
+                   .s32(subbuf size + 5)
+                // We add 5, because the length comprises 4 bytes and the trailing
+                // null byte is one byte.
                 seq writer write(subbuf)
                 seq u8(0)
             }
